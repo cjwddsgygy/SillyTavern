@@ -1,23 +1,14 @@
-import { Readable } from 'node:stream';
-import fetch from 'node-fetch';
-import express from 'express';
-import _ from 'lodash';
+const express = require('express');
+const fetch = require('node-fetch').default;
+const _ = require('lodash');
+const Readable = require('stream').Readable;
 
-import { jsonParser } from '../../express-common.js';
-import {
-    TEXTGEN_TYPES,
-    TOGETHERAI_KEYS,
-    OLLAMA_KEYS,
-    INFERMATICAI_KEYS,
-    OPENROUTER_KEYS,
-    VLLM_KEYS,
-    DREAMGEN_KEYS,
-    FEATHERLESS_KEYS,
-} from '../../constants.js';
-import { forwardFetchResponse, trimV1, getConfigValue } from '../../util.js';
-import { setAdditionalHeaders } from '../../additional-headers.js';
+const { jsonParser } = require('../../express-common');
+const { TEXTGEN_TYPES, TOGETHERAI_KEYS, OLLAMA_KEYS, INFERMATICAI_KEYS, OPENROUTER_KEYS, VLLM_KEYS, DREAMGEN_KEYS, FEATHERLESS_KEYS } = require('../../constants');
+const { forwardFetchResponse, trimV1, getConfigValue } = require('../../util');
+const { setAdditionalHeaders } = require('../../additional-headers');
 
-export const router = express.Router();
+const router = express.Router();
 
 /**
  * Special boy's steaming routine. Wrap this abomination into proper SSE stream.
@@ -28,10 +19,6 @@ export const router = express.Router();
  */
 async function parseOllamaStream(jsonStream, request, response) {
     try {
-        if (!jsonStream.body) {
-            throw new Error('No body in the response');
-        }
-
         let partialData = '';
         jsonStream.body.on('data', (data) => {
             const chunk = data.toString();
@@ -112,38 +99,41 @@ router.post('/status', jsonParser, async function (request, response) {
         let url = baseUrl;
         let result = '';
 
-
-        switch (apiType) {
-            case TEXTGEN_TYPES.OOBA:
-            case TEXTGEN_TYPES.VLLM:
-            case TEXTGEN_TYPES.APHRODITE:
-            case TEXTGEN_TYPES.KOBOLDCPP:
-            case TEXTGEN_TYPES.LLAMACPP:
-            case TEXTGEN_TYPES.INFERMATICAI:
-            case TEXTGEN_TYPES.OPENROUTER:
-                url += '/v1/models';
-                break;
-            case TEXTGEN_TYPES.DREAMGEN:
-                url += '/api/openai/v1/models';
-                break;
-            case TEXTGEN_TYPES.MANCER:
-                url += '/oai/v1/models';
-                break;
-            case TEXTGEN_TYPES.TABBY:
-                url += '/v1/model/list';
-                break;
-            case TEXTGEN_TYPES.TOGETHERAI:
-                url += '/api/models?&info';
-                break;
-            case TEXTGEN_TYPES.OLLAMA:
-                url += '/api/tags';
-                break;
-            case TEXTGEN_TYPES.FEATHERLESS:
-                url += '/v1/models';
-                break;
-            case TEXTGEN_TYPES.HUGGINGFACE:
-                url += '/info';
-                break;
+        if (request.body.legacy_api) {
+            url += '/v1/model';
+        } else {
+            switch (apiType) {
+                case TEXTGEN_TYPES.OOBA:
+                case TEXTGEN_TYPES.VLLM:
+                case TEXTGEN_TYPES.APHRODITE:
+                case TEXTGEN_TYPES.KOBOLDCPP:
+                case TEXTGEN_TYPES.LLAMACPP:
+                case TEXTGEN_TYPES.INFERMATICAI:
+                case TEXTGEN_TYPES.OPENROUTER:
+                    url += '/v1/models';
+                    break;
+                case TEXTGEN_TYPES.DREAMGEN:
+                    url += '/api/openai/v1/models';
+                    break;
+                case TEXTGEN_TYPES.MANCER:
+                    url += '/oai/v1/models';
+                    break;
+                case TEXTGEN_TYPES.TABBY:
+                    url += '/v1/model/list';
+                    break;
+                case TEXTGEN_TYPES.TOGETHERAI:
+                    url += '/api/models?&info';
+                    break;
+                case TEXTGEN_TYPES.OLLAMA:
+                    url += '/api/tags';
+                    break;
+                case TEXTGEN_TYPES.FEATHERLESS:
+                    url += '/v1/models';
+                    break;
+                case TEXTGEN_TYPES.HUGGINGFACE:
+                    url += '/info';
+                    break;
+            }
         }
 
         const modelsReply = await fetch(url, args);
@@ -154,8 +144,12 @@ router.post('/status', jsonParser, async function (request, response) {
             return response.status(400);
         }
 
-        /** @type {any} */
         let data = await modelsReply.json();
+
+        if (request.body.legacy_api) {
+            console.log('Legacy API response:', data);
+            return response.send({ result: data?.result });
+        }
 
         // Rewrap to OAI-like response
         if (apiType === TEXTGEN_TYPES.TOGETHERAI && Array.isArray(data)) {
@@ -187,7 +181,6 @@ router.post('/status', jsonParser, async function (request, response) {
                 const modelInfoReply = await fetch(modelInfoUrl, args);
 
                 if (modelInfoReply.ok) {
-                    /** @type {any} */
                     const modelInfo = await modelInfoReply.json();
                     console.log('Ooba model info:', modelInfo);
 
@@ -204,7 +197,6 @@ router.post('/status', jsonParser, async function (request, response) {
                 const modelInfoReply = await fetch(modelInfoUrl, args);
 
                 if (modelInfoReply.ok) {
-                    /** @type {any} */
                     const modelInfo = await modelInfoReply.json();
                     console.log('Tabby model info:', modelInfo);
 
@@ -251,33 +243,37 @@ router.post('/generate', jsonParser, async function (request, response) {
 
         let url = trimV1(baseUrl);
 
-        switch (request.body.api_type) {
-            case TEXTGEN_TYPES.VLLM:
-            case TEXTGEN_TYPES.FEATHERLESS:
-            case TEXTGEN_TYPES.APHRODITE:
-            case TEXTGEN_TYPES.OOBA:
-            case TEXTGEN_TYPES.TABBY:
-            case TEXTGEN_TYPES.KOBOLDCPP:
-            case TEXTGEN_TYPES.TOGETHERAI:
-            case TEXTGEN_TYPES.INFERMATICAI:
-            case TEXTGEN_TYPES.HUGGINGFACE:
-                url += '/v1/completions';
-                break;
-            case TEXTGEN_TYPES.DREAMGEN:
-                url += '/api/openai/v1/completions';
-                break;
-            case TEXTGEN_TYPES.MANCER:
-                url += '/oai/v1/completions';
-                break;
-            case TEXTGEN_TYPES.LLAMACPP:
-                url += '/completion';
-                break;
-            case TEXTGEN_TYPES.OLLAMA:
-                url += '/api/generate';
-                break;
-            case TEXTGEN_TYPES.OPENROUTER:
-                url += '/v1/chat/completions';
-                break;
+        if (request.body.legacy_api) {
+            url += '/v1/generate';
+        } else {
+            switch (request.body.api_type) {
+                case TEXTGEN_TYPES.VLLM:
+                case TEXTGEN_TYPES.FEATHERLESS:
+                case TEXTGEN_TYPES.APHRODITE:
+                case TEXTGEN_TYPES.OOBA:
+                case TEXTGEN_TYPES.TABBY:
+                case TEXTGEN_TYPES.KOBOLDCPP:
+                case TEXTGEN_TYPES.TOGETHERAI:
+                case TEXTGEN_TYPES.INFERMATICAI:
+                case TEXTGEN_TYPES.HUGGINGFACE:
+                    url += '/v1/completions';
+                    break;
+                case TEXTGEN_TYPES.DREAMGEN:
+                    url += '/api/openai/v1/completions';
+                    break;
+                case TEXTGEN_TYPES.MANCER:
+                    url += '/oai/v1/completions';
+                    break;
+                case TEXTGEN_TYPES.LLAMACPP:
+                    url += '/completion';
+                    break;
+                case TEXTGEN_TYPES.OLLAMA:
+                    url += '/api/generate';
+                    break;
+                case TEXTGEN_TYPES.OPENROUTER:
+                    url += '/v1/chat/completions';
+                    break;
+            }
         }
 
         const args = {
@@ -354,9 +350,14 @@ router.post('/generate', jsonParser, async function (request, response) {
             const completionsReply = await fetch(url, args);
 
             if (completionsReply.ok) {
-                /** @type {any} */
                 const data = await completionsReply.json();
                 console.log('Endpoint response:', data);
+
+                // Wrap legacy response to OAI completions format
+                if (request.body.legacy_api) {
+                    const text = data?.results[0]?.text;
+                    data['choices'] = [{ text }];
+                }
 
                 // Map InfermaticAI response to OAI completions format
                 if (apiType === TEXTGEN_TYPES.INFERMATICAI) {
@@ -405,6 +406,7 @@ ollama.post('/download', jsonParser, async function (request, response) {
                 name: name,
                 stream: false,
             }),
+            timeout: 0,
         });
 
         if (!fetchResponse.ok) {
@@ -437,6 +439,7 @@ ollama.post('/caption-image', jsonParser, async function (request, response) {
                 images: [request.body.image],
                 stream: false,
             }),
+            timeout: 0,
         });
 
         if (!fetchResponse.ok) {
@@ -444,7 +447,6 @@ ollama.post('/caption-image', jsonParser, async function (request, response) {
             return response.status(500).send({ error: true });
         }
 
-        /** @type {any} */
         const data = await fetchResponse.json();
         console.log('Ollama caption response:', data);
 
@@ -476,6 +478,7 @@ llamacpp.post('/caption-image', jsonParser, async function (request, response) {
         const fetchResponse = await fetch(`${baseUrl}/completion`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            timeout: 0,
             body: JSON.stringify({
                 prompt: `USER:[img-1]${String(request.body.prompt).trim()}\nASSISTANT:`,
                 image_data: [{ data: request.body.image, id: 1 }],
@@ -490,7 +493,6 @@ llamacpp.post('/caption-image', jsonParser, async function (request, response) {
             return response.status(500).send({ error: true });
         }
 
-        /** @type {any} */
         const data = await fetchResponse.json();
         console.log('LlamaCpp caption response:', data);
 
@@ -520,6 +522,7 @@ llamacpp.post('/props', jsonParser, async function (request, response) {
 
         const fetchResponse = await fetch(`${baseUrl}/props`, {
             method: 'GET',
+            timeout: 0,
         });
 
         if (!fetchResponse.ok) {
@@ -554,6 +557,7 @@ llamacpp.post('/slots', jsonParser, async function (request, response) {
         if (request.body.action === 'info') {
             fetchResponse = await fetch(`${baseUrl}/slots`, {
                 method: 'GET',
+                timeout: 0,
             });
         } else {
             if (!/^\d+$/.test(request.body.id_slot)) {
@@ -566,6 +570,7 @@ llamacpp.post('/slots', jsonParser, async function (request, response) {
             fetchResponse = await fetch(`${baseUrl}/slots/${request.body.id_slot}?action=${request.body.action}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                timeout: 0,
                 body: JSON.stringify({
                     filename: request.body.action !== 'erase' ? `${request.body.filename}` : undefined,
                 }),
@@ -609,7 +614,6 @@ tabby.post('/download', jsonParser, async function (request, response) {
         });
 
         if (permissionResponse.ok) {
-            /** @type {any} */
             const permissionJson = await permissionResponse.json();
 
             if (permissionJson['permission'] !== 'admin') {
@@ -637,3 +641,5 @@ tabby.post('/download', jsonParser, async function (request, response) {
 router.use('/ollama', ollama);
 router.use('/llamacpp', llamacpp);
 router.use('/tabby', tabby);
+
+module.exports = { router };

@@ -1,10 +1,7 @@
-import { Buffer } from 'node:buffer';
-import express from 'express';
-import wavefile from 'wavefile';
-import { jsonParser } from '../express-common.js';
-import { getPipeline } from '../transformers.mjs';
+const express = require('express');
+const { jsonParser } = require('../express-common');
 
-export const router = express.Router();
+const router = express.Router();
 
 /**
  * Gets the audio data from a base64-encoded audio file.
@@ -12,6 +9,7 @@ export const router = express.Router();
  * @returns {Float64Array} Audio data
  */
 function getWaveFile(audio) {
+    const wavefile = require('wavefile');
     const wav = new wavefile.WaveFile();
     wav.fromDataURI(audio);
     wav.toBitDepth('32f');
@@ -38,7 +36,8 @@ router.post('/recognize', jsonParser, async (req, res) => {
     try {
         const TASK = 'automatic-speech-recognition';
         const { model, audio, lang } = req.body;
-        const pipe = await getPipeline(TASK, model);
+        const module = await import('../transformers.mjs');
+        const pipe = await module.default.getPipeline(TASK, model);
         const wav = getWaveFile(audio);
         const start = performance.now();
         const result = await pipe(wav, { language: lang || null, task: 'transcribe' });
@@ -55,9 +54,11 @@ router.post('/recognize', jsonParser, async (req, res) => {
 
 router.post('/synthesize', jsonParser, async (req, res) => {
     try {
+        const wavefile = require('wavefile');
         const TASK = 'text-to-speech';
         const { text, model, speaker } = req.body;
-        const pipe = await getPipeline(TASK, model);
+        const module = await import('../transformers.mjs');
+        const pipe = await module.default.getPipeline(TASK, model);
         const speaker_embeddings = speaker
             ? new Float32Array(new Uint8Array(Buffer.from(speaker.startsWith('data:') ? speaker.split(',')[1] : speaker, 'base64')).buffer)
             : null;
@@ -77,3 +78,5 @@ router.post('/synthesize', jsonParser, async (req, res) => {
         return res.sendStatus(500);
     }
 });
+
+module.exports = { router };

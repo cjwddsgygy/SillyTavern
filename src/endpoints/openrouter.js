@@ -1,7 +1,7 @@
-import express from 'express';
-import { jsonParser } from '../express-common.js';
+const express = require('express');
+const { jsonParser } = require('../express-common');
 
-export const router = express.Router();
+const router = express.Router();
 const API_OPENROUTER = 'https://openrouter.ai/api/v1';
 
 router.post('/models/multimodal', jsonParser, async (_req, res) => {
@@ -28,3 +28,5 @@ router.post('/models/multimodal', jsonParser, async (_req, res) => {
         return res.sendStatus(500);
     }
 });
+
+module.exports = { router };

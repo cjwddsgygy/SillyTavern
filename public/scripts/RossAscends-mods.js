@@ -45,11 +45,8 @@ var LPanelPin = document.getElementById('lm_button_panel_pin');
 var WIPanelPin = document.getElementById('WI_panel_pin');
 
 var RightNavPanel = document.getElementById('right-nav-panel');
-var RightNavDrawerIcon = document.getElementById('rightNavDrawerIcon');
 var LeftNavPanel = document.getElementById('left-nav-panel');
-var LeftNavDrawerIcon = document.getElementById('leftNavDrawerIcon');
 var WorldInfo = document.getElementById('WorldInfo');
-var WIDrawerIcon = document.getElementById('WIDrawerIcon');
 
 var SelectedCharacterTab = document.getElementById('rm_button_selected_ch');
 
@@ -59,25 +56,22 @@ let counterNonce = Date.now();
 
 const observerConfig = { childList: true, subtree: true };
 const countTokensDebounced = debounce(RA_CountCharTokens, debounce_timeout.relaxed);
-const countTokensShortDebounced = debounce(RA_CountCharTokens, debounce_timeout.short);
-const checkStatusDebounced = debounce(RA_checkOnlineStatus, debounce_timeout.short);
 
 const observer = new MutationObserver(function (mutations) {
     mutations.forEach(function (mutation) {
-        if (!(mutation.target instanceof HTMLElement)) {
-            return;
-        }
         if (mutation.target.classList.contains('online_status_text')) {
-            checkStatusDebounced();
+            RA_checkOnlineStatus();
         } else if (mutation.target.parentNode === SelectedCharacterTab) {
-            countTokensShortDebounced();
+            setTimeout(RA_CountCharTokens, 200);
         } else if (mutation.target.classList.contains('mes_text')) {
-            for (const element of mutation.target.getElementsByTagName('math')) {
-                element.childNodes.forEach(function (child) {
-                    if (child.nodeType === Node.TEXT_NODE) {
-                        child.textContent = '';
-                    }
-                });
+            if (mutation.target instanceof HTMLElement) {
+                for (const element of mutation.target.getElementsByTagName('math')) {
+                    element.childNodes.forEach(function (child) {
+                        if (child.nodeType === Node.TEXT_NODE) {
+                            child.textContent = '';
+                        }
+                    });
+                }
             }
         }
     });
@@ -121,7 +115,7 @@ export function humanizeGenTime(total_gen_time) {
  */
 var parsedUA = null;
 
-export function getParsedUA() {
+function getParsedUA() {
     if (!parsedUA) {
         try {
             parsedUA = Bowser.parse(navigator.userAgent);
@@ -165,8 +159,8 @@ export function shouldSendOnEnter() {
 export function humanizedDateTime() {
     const now = new Date(Date.now());
     const dt = {
-        year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(),
-        hour: now.getHours(), minute: now.getMinutes(), second: now.getSeconds(),
+        year: now.getFullYear(),  month: now.getMonth() + 1,  day: now.getDate(),
+        hour: now.getHours(),     minute: now.getMinutes(),   second: now.getSeconds(),
     };
     for (const key in dt) {
         dt[key] = dt[key].toString().padStart(2, '0');
@@ -314,7 +308,7 @@ function RA_checkOnlineStatus() {
     if (online_status == 'no_connection') {
         const send_textarea = $('#send_textarea');
         send_textarea.attr('placeholder', send_textarea.attr('no_connection_text')); //Input bar placeholder tells users they are not connected
-        //$('#send_form').addClass('no-connection'); //entire input form area is red when not connected
+        $('#send_form').addClass('no-connection'); //entire input form area is red when not connected
         $('#send_but').addClass('displayNone'); //send button is hidden when not connected;
         $('#mes_continue').addClass('displayNone'); //continue button is hidden when not connected;
         $('#mes_impersonate').addClass('displayNone'); //continue button is hidden when not connected;
@@ -325,7 +319,7 @@ function RA_checkOnlineStatus() {
         if (online_status !== undefined && online_status !== 'no_connection') {
             const send_textarea = $('#send_textarea');
             send_textarea.attr('placeholder', send_textarea.attr('connected_text')); //on connect, placeholder tells user to type message
-            //$('#send_form').removeClass('no-connection');
+            $('#send_form').removeClass('no-connection');
             $('#API-status-top').removeClass('fa-plug-circle-exclamation redOverlayGlow');
             $('#API-status-top').addClass('fa-plug');
             connection_made = true;
@@ -717,9 +711,23 @@ export const autoFitSendTextAreaDebounced = debounce(autoFitSendTextArea, deboun
 
 // ---------------------------------------------------
 
+export function addSafariPatch() {
+    const userAgent = getParsedUA();
+    console.debug('User Agent', userAgent);
+    const isMobileSafari = /iPad|iPhone|iPod/.test(navigator.platform) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isDesktopSafari = userAgent?.browser?.name === 'Safari' && userAgent?.platform?.type === 'desktop';
+    const isIOS = userAgent?.os?.name === 'iOS';
+
+    if (isIOS || isMobileSafari || isDesktopSafari) {
+        document.body.classList.add('safari');
+    }
+}
+
 export function initRossMods() {
     // initial status check
-    checkStatusDebounced();
+    setTimeout(() => {
+        RA_checkOnlineStatus();
+    }, 100);
 
     if (power_user.auto_load_chat) {
         RA_autoloadchat();
@@ -729,12 +737,22 @@ export function initRossMods() {
         RA_autoconnect();
     }
 
+    if (isMobile()) {
+        const fixFunkyPositioning = () => {
+            console.debug('[Mobile] Device viewport change detected.');
+            document.documentElement.style.position = 'fixed';
+            requestAnimationFrame(() => document.documentElement.style.position = '');
+        };
+        window.addEventListener('resize', fixFunkyPositioning);
+        window.addEventListener('orientationchange', fixFunkyPositioning);
+    }
+
     $('#main_api').change(function () {
         var PrevAPI = main_api;
         setTimeout(() => RA_autoconnect(PrevAPI), 100);
     });
 
-    $('#api_button').on('click', () => checkStatusDebounced());
+    $('#api_button').click(function () { setTimeout(RA_checkOnlineStatus, 100); });
 
     //toggle pin class when lock toggle clicked
     $(RPanelPin).on('click', function () {
@@ -742,15 +760,13 @@ export function initRossMods() {
         if ($(RPanelPin).prop('checked') == true) {
             //console.log('adding pin class to right nav');
             $(RightNavPanel).addClass('pinnedOpen');
-            $(RightNavDrawerIcon).addClass('drawerPinnedOpen');
         } else {
             //console.log('removing pin class from right nav');
             $(RightNavPanel).removeClass('pinnedOpen');
-            $(RightNavDrawerIcon).removeClass('drawerPinnedOpen');
 
             if ($(RightNavPanel).hasClass('openDrawer') && $('.openDrawer').length > 1) {
                 $(RightNavPanel).slideToggle(200, 'swing');
-                $(RightNavDrawerIcon).toggleClass('openIcon closedIcon');
+                //$(rightNavDrawerIcon).toggleClass('openIcon closedIcon');
                 $(RightNavPanel).toggleClass('openDrawer closedDrawer');
             }
         }
@@ -760,15 +776,13 @@ export function initRossMods() {
         if ($(LPanelPin).prop('checked') == true) {
             //console.log('adding pin class to Left nav');
             $(LeftNavPanel).addClass('pinnedOpen');
-            $(LeftNavDrawerIcon).addClass('drawerPinnedOpen');
         } else {
             //console.log('removing pin class from Left nav');
             $(LeftNavPanel).removeClass('pinnedOpen');
-            $(LeftNavDrawerIcon).removeClass('drawerPinnedOpen');
 
             if ($(LeftNavPanel).hasClass('openDrawer') && $('.openDrawer').length > 1) {
                 $(LeftNavPanel).slideToggle(200, 'swing');
-                $(LeftNavDrawerIcon).toggleClass('openIcon closedIcon');
+                //$(leftNavDrawerIcon).toggleClass('openIcon closedIcon');
                 $(LeftNavPanel).toggleClass('openDrawer closedDrawer');
             }
         }
@@ -779,16 +793,14 @@ export function initRossMods() {
         if ($(WIPanelPin).prop('checked') == true) {
             console.debug('adding pin class to WI');
             $(WorldInfo).addClass('pinnedOpen');
-            $(WIDrawerIcon).addClass('drawerPinnedOpen');
         } else {
             console.debug('removing pin class from WI');
             $(WorldInfo).removeClass('pinnedOpen');
-            $(WIDrawerIcon).removeClass('drawerPinnedOpen');
 
             if ($(WorldInfo).hasClass('openDrawer') && $('.openDrawer').length > 1) {
                 console.debug('closing WI after lock removal');
                 $(WorldInfo).slideToggle(200, 'swing');
-                $(WIDrawerIcon).toggleClass('openIcon closedIcon');
+                //$(WorldInfoDrawerIcon).toggleClass('openIcon closedIcon');
                 $(WorldInfo).toggleClass('openDrawer closedDrawer');
             }
         }
@@ -799,24 +811,20 @@ export function initRossMods() {
     if (LoadLocalBool('NavLockOn') == true) {
         //console.log('setting pin class via local var');
         $(RightNavPanel).addClass('pinnedOpen');
-        $(RightNavDrawerIcon).addClass('drawerPinnedOpen');
     }
     if ($(RPanelPin).prop('checked')) {
         console.debug('setting pin class via checkbox state');
         $(RightNavPanel).addClass('pinnedOpen');
-        $(RightNavDrawerIcon).addClass('drawerPinnedOpen');
     }
     // read the state of left Nav Lock and apply to leftnav classlist
     $(LPanelPin).prop('checked', LoadLocalBool('LNavLockOn'));
     if (LoadLocalBool('LNavLockOn') == true) {
         //console.log('setting pin class via local var');
         $(LeftNavPanel).addClass('pinnedOpen');
-        $(LeftNavDrawerIcon).addClass('drawerPinnedOpen');
     }
     if ($(LPanelPin).prop('checked')) {
         console.debug('setting pin class via checkbox state');
         $(LeftNavPanel).addClass('pinnedOpen');
-        $(LeftNavDrawerIcon).addClass('drawerPinnedOpen');
     }
 
     // read the state of left Nav Lock and apply to leftnav classlist
@@ -824,13 +832,11 @@ export function initRossMods() {
     if (LoadLocalBool('WINavLockOn') == true) {
         //console.log('setting pin class via local var');
         $(WorldInfo).addClass('pinnedOpen');
-        $(WIDrawerIcon).addClass('drawerPinnedOpen');
     }
 
     if ($(WIPanelPin).prop('checked')) {
         console.debug('setting pin class via checkbox state');
         $(WorldInfo).addClass('pinnedOpen');
-        $(WIDrawerIcon).addClass('drawerPinnedOpen');
     }
 
     //save state of Right nav being open or closed
@@ -911,12 +917,6 @@ export function initRossMods() {
         if (!$(e.target).closest('#sheld').length) {
             return;
         }
-        if ($('#curEditTextarea').length) {
-            // Don't swipe while in text edit mode
-            // the ios selection gestures get picked up
-            // as swipe gestures
-            return;
-        }
         var SwipeButR = $('.swipe_right:last');
         var SwipeTargetMesClassParent = $(e.target).closest('.last_mes');
         if (SwipeTargetMesClassParent !== null) {
@@ -933,12 +933,6 @@ export function initRossMods() {
             return;
         }
         if (!$(e.target).closest('#sheld').length) {
-            return;
-        }
-        if ($('#curEditTextarea').length) {
-            // Don't swipe while in text edit mode
-            // the ios selection gestures get picked up
-            // as swipe gestures
             return;
         }
         var SwipeButL = $('.swipe_left:last');
@@ -1032,7 +1026,6 @@ export function initRossMods() {
             const editMesDone = $('.mes_edit_done:visible');
             if (editMesDone.length > 0) {
                 console.debug('Accepting edits with Ctrl+Enter');
-                $('#send_textarea').focus();
                 editMesDone.trigger('click');
                 return;
             } else if (is_send_press == false) {

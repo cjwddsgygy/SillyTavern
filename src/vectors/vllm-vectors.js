@@ -1,16 +1,16 @@
-import fetch from 'node-fetch';
-import { setAdditionalHeadersByType } from '../additional-headers.js';
-import { TEXTGEN_TYPES } from '../constants.js';
+const fetch = require('node-fetch').default;
+const { setAdditionalHeadersByType } = require('../additional-headers');
+const { TEXTGEN_TYPES } = require('../constants');
 
 /**
  * Gets the vector for the given text from VLLM
  * @param {string[]} texts - The array of texts to get the vectors for
  * @param {string} apiUrl - The API URL
  * @param {string} model - The model to use
- * @param {import('../users.js').UserDirectoryList} directories - The directories object for the user
+ * @param {import('../users').UserDirectoryList} directories - The directories object for the user
  * @returns {Promise<number[][]>} - The array of vectors for the texts
  */
-export async function getVllmBatchVector(texts, apiUrl, model, directories) {
+async function getVllmBatchVector(texts, apiUrl, model, directories) {
     const url = new URL(apiUrl);
     url.pathname = '/v1/embeddings';
 
@@ -31,7 +31,6 @@ export async function getVllmBatchVector(texts, apiUrl, model, directories) {
         throw new Error(`VLLM: Failed to get vector for text: ${response.statusText} ${responseText}`);
     }
 
-    /** @type {any} */
     const data = await response.json();
 
     if (!Array.isArray(data?.data)) {
@@ -50,10 +49,15 @@ export async function getVllmBatchVector(texts, apiUrl, model, directories) {
  * @param {string} text - The text to get the vector for
  * @param {string} apiUrl - The API URL
  * @param {string} model - The model to use
- * @param {import('../users.js').UserDirectoryList} directories - The directories object for the user
+ * @param {import('../users').UserDirectoryList} directories - The directories object for the user
  * @returns {Promise<number[]>} - The vector for the text
  */
-export async function getVllmVector(text, apiUrl, model, directories) {
+async function getVllmVector(text, apiUrl, model, directories) {
     const vectors = await getVllmBatchVector([text], apiUrl, model, directories);
     return vectors[0];
 }
+
+module.exports = {
+    getVllmBatchVector,
+    getVllmVector,
+};

@@ -1,5 +1,5 @@
-import fetch from 'node-fetch';
-import { SECRET_KEYS, readSecret } from '../endpoints/secrets.js';
+const fetch = require('node-fetch').default;
+const { SECRET_KEYS, readSecret } = require('../endpoints/secrets');
 
 const SOURCES = {
     'togetherai': {
@@ -23,11 +23,11 @@ const SOURCES = {
  * Gets the vector for the given text batch from an OpenAI compatible endpoint.
  * @param {string[]} texts - The array of texts to get the vector for
  * @param {string} source - The source of the vector
- * @param {import('../users.js').UserDirectoryList} directories - The directories object for the user
+ * @param {import('../users').UserDirectoryList} directories - The directories object for the user
  * @param {string} model - The model to use for the embedding
  * @returns {Promise<number[][]>} - The array of vectors for the texts
  */
-export async function getOpenAIBatchVector(texts, source, directories, model = '') {
+async function getOpenAIBatchVector(texts, source, directories, model = '') {
     const config = SOURCES[source];
 
     if (!config) {
@@ -61,7 +61,6 @@ export async function getOpenAIBatchVector(texts, source, directories, model = '
         throw new Error('API request failed');
     }
 
-    /** @type {any} */
     const data = await response.json();
 
     if (!Array.isArray(data?.data)) {
@@ -80,11 +79,16 @@ export async function getOpenAIBatchVector(texts, source, directories, model = '
  * Gets the vector for the given text from an OpenAI compatible endpoint.
  * @param {string} text - The text to get the vector for
  * @param {string} source - The source of the vector
- * @param {import('../users.js').UserDirectoryList} directories - The directories object for the user
+ * @param {import('../users').UserDirectoryList} directories - The directories object for the user
  * @param {string} model - The model to use for the embedding
  * @returns {Promise<number[]>} - The vector for the text
  */
-export async function getOpenAIVector(text, source, directories, model = '') {
+async function getOpenAIVector(text, source, directories, model = '') {
     const vectors = await getOpenAIBatchVector([text], source, directories, model);
     return vectors[0];
 }
+
+module.exports = {
+    getOpenAIVector,
+    getOpenAIBatchVector,
+};

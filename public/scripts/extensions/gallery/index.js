@@ -26,11 +26,9 @@ let paginationVisiblePages = 10;
 let paginationMaxLinesPerPage = 2;
 let galleryMaxRows = 3;
 
-// Remove all draggables associated with the gallery
-$('#movingDivs').on('click', '.dragClose', function () {
-    const relatedId = $(this).data('related-id');
-    if (!relatedId) return;
-    $(`#movingDivs > .draggable[id="${relatedId}"]`).remove();
+$('body').on('click', '.dragClose', function () {
+    const relatedId = $(this).data('related-id');  // Get the ID of the related draggable
+    $(`body > .draggable[id="${relatedId}"]`).remove();  // Remove the associated draggable
 });
 
 const CUSTOM_GALLERY_REMOVED_EVENT = 'galleryRemoved';
@@ -292,7 +290,7 @@ function makeMovable(id = 'gallery') {
 
     $('#dragGallery').css('display', 'block');
 
-    $('#movingDivs').append(newElement);
+    $('body').append(newElement);
 
     loadMovingUIState();
     $(`.draggable[forChar="${id}"]`).css('display', 'block');
@@ -364,8 +362,8 @@ function makeDragImg(id, url) {
         }
     }
 
-    // Step 3: Attach it to the movingDivs container
-    document.getElementById('movingDivs').appendChild(newElement);
+    // Step 3: Attach it to the body
+    document.body.appendChild(newElement);
 
     // Step 4: Call dragElement and loadMovingUIState
     const appendedElement = document.getElementById(uniqueId);
@@ -441,7 +439,6 @@ SlashCommandParser.addCommandObject(SlashCommand.fromProps({
             description: 'character name',
             typeList: [ARGUMENT_TYPE.STRING],
             enumProvider: commonEnumProviders.characters('character'),
-            forceEnum: true,
         }),
         SlashCommandNamedArgument.fromProps({
             name: 'group',

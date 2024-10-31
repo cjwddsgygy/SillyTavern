@@ -1,12 +1,10 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { Buffer } from 'node:buffer';
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const sanitize = require('sanitize-filename');
 
-import express from 'express';
-import sanitize from 'sanitize-filename';
-
-import { jsonParser } from '../express-common.js';
-import { clientRelativePath, removeFileExtension, getImages } from '../util.js';
+const { jsonParser } = require('../express-common');
+const { clientRelativePath, removeFileExtension, getImages } = require('../util');
 
 /**
  * Ensure the directory for the provided file path exists.
@@ -23,7 +21,7 @@ function ensureDirectoryExistence(filePath) {
     fs.mkdirSync(dirname);
 }
 
-export const router = express.Router();
+const router = express.Router();
 
 /**
  * Endpoint to handle image uploads.
@@ -68,7 +66,7 @@ router.post('/upload', jsonParser, async (request, response) => {
 
         ensureDirectoryExistence(pathToNewFile);
         const imageBuffer = Buffer.from(base64Data, 'base64');
-        await fs.promises.writeFile(pathToNewFile, new Uint8Array(imageBuffer));
+        await fs.promises.writeFile(pathToNewFile, imageBuffer);
         response.send({ path: clientRelativePath(request.user.directories.root, pathToNewFile) });
     } catch (error) {
         console.log(error);
@@ -91,3 +89,5 @@ router.post('/list/:folder', (request, response) => {
         return response.status(500).send({ error: 'Unable to retrieve files' });
     }
 });
+
+module.exports = { router };

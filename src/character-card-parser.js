@@ -1,9 +1,8 @@
-import fs from 'node:fs';
-import { Buffer } from 'node:buffer';
+const fs = require('fs');
 
-import encode from 'png-chunks-encode';
-import extract from 'png-chunks-extract';
-import PNGtext from 'png-chunk-text';
+const encode = require('png-chunks-encode');
+const extract = require('png-chunks-extract');
+const PNGtext = require('png-chunk-text');
 
 /**
  * Writes Character metadata to a PNG image buffer.
@@ -12,8 +11,8 @@ import PNGtext from 'png-chunk-text';
  * @param {string} data Character data to write
  * @returns {Buffer} PNG image buffer with metadata
  */
-export const write = (image, data) => {
-    const chunks = extract(new Uint8Array(image));
+const write = (image, data) => {
+    const chunks = extract(image);
     const tEXtChunks = chunks.filter(chunk => chunk.name === 'tEXt');
 
     // Remove existing tEXt chunks
@@ -37,9 +36,7 @@ export const write = (image, data) => {
 
         const base64EncodedData = Buffer.from(JSON.stringify(v3Data), 'utf8').toString('base64');
         chunks.splice(-1, 0, PNGtext.encode('ccv3', base64EncodedData));
-    } catch (error) {
-        // Ignore errors when adding v3 chunk
-    }
+    } catch (error) { }
 
     const newBuffer = Buffer.from(encode(chunks));
     return newBuffer;
@@ -51,8 +48,8 @@ export const write = (image, data) => {
  * @param {Buffer} image PNG image buffer
  * @returns {string} Character data
  */
-export const read = (image) => {
-    const chunks = extract(new Uint8Array(image));
+const read = (image) => {
+    const chunks = extract(image);
 
     const textChunks = chunks.filter((chunk) => chunk.name === 'tEXt').map((chunk) => PNGtext.decode(chunk.data));
 
@@ -83,7 +80,7 @@ export const read = (image) => {
  * @param {string} format File format
  * @returns {string} Character data
  */
-export const parse = (cardUrl, format) => {
+const parse = (cardUrl, format) => {
     let fileFormat = format === undefined ? 'png' : format;
 
     switch (fileFormat) {
@@ -96,3 +93,8 @@ export const parse = (cardUrl, format) => {
     throw new Error('Unsupported format');
 };
 
+module.exports = {
+    parse,
+    write,
+    read,
+};

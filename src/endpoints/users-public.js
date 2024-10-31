@@ -1,16 +1,15 @@
-import crypto from 'node:crypto';
-
-import storage from 'node-persist';
-import express from 'express';
-import { RateLimiterMemory, RateLimiterRes } from 'rate-limiter-flexible';
-import { jsonParser, getIpFromRequest } from '../express-common.js';
-import { color, Cache, getConfigValue } from '../util.js';
-import { KEY_PREFIX, getUserAvatar, toKey, getPasswordHash, getPasswordSalt } from '../users.js';
+const crypto = require('crypto');
+const storage = require('node-persist');
+const express = require('express');
+const { RateLimiterMemory, RateLimiterRes } = require('rate-limiter-flexible');
+const { jsonParser, getIpFromRequest } = require('../express-common');
+const { color, Cache, getConfigValue } = require('../util');
+const { KEY_PREFIX, getUserAvatar, toKey, getPasswordHash, getPasswordSalt } = require('../users');
 
 const DISCREET_LOGIN = getConfigValue('enableDiscreetLogin', false);
 const MFA_CACHE = new Cache(5 * 60 * 1000);
 
-export const router = express.Router();
+const router = express.Router();
 const loginLimiter = new RateLimiterMemory({
     points: 5,
     duration: 60,
@@ -26,10 +25,10 @@ router.post('/list', async (_request, response) => {
             return response.sendStatus(204);
         }
 
-        /** @type {import('../users.js').User[]} */
+        /** @type {import('../users').User[]} */
         const users = await storage.values(x => x.key.startsWith(KEY_PREFIX));
 
-        /** @type {Promise<import('../users.js').UserViewModel>[]} */
+        /** @type {Promise<import('../users').UserViewModel>[]} */
         const viewModelPromises = users
             .filter(x => x.enabled)
             .map(user => new Promise(async (resolve) => {
@@ -63,7 +62,7 @@ router.post('/login', jsonParser, async (request, response) => {
         const ip = getIpFromRequest(request);
         await loginLimiter.consume(ip);
 
-        /** @type {import('../users.js').User} */
+        /** @type {import('../users').User} */
         const user = await storage.getItem(toKey(request.body.handle));
 
         if (!user) {
@@ -111,7 +110,7 @@ router.post('/recover-step1', jsonParser, async (request, response) => {
         const ip = getIpFromRequest(request);
         await recoverLimiter.consume(ip);
 
-        /** @type {import('../users.js').User} */
+        /** @type {import('../users').User} */
         const user = await storage.getItem(toKey(request.body.handle));
 
         if (!user) {
@@ -148,7 +147,7 @@ router.post('/recover-step2', jsonParser, async (request, response) => {
             return response.status(400).json({ error: 'Missing required fields' });
         }
 
-        /** @type {import('../users.js').User} */
+        /** @type {import('../users').User} */
         const user = await storage.getItem(toKey(request.body.handle));
         const ip = getIpFromRequest(request);
 
@@ -194,3 +193,7 @@ router.post('/recover-step2', jsonParser, async (request, response) => {
         return response.sendStatus(500);
     }
 });
+
+module.exports = {
+    router,
+};

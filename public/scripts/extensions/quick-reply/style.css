@@ -34,14 +34,6 @@
   right: 0.25em;
   top: 0;
 }
-
-/*hide QR popout for mobile*/
-@media screen and (max-width: 1000px) {
-  #qr--bar > #qr--popoutTrigger {
- display:none;
-  }
-}
-
 #qr--bar.popoutVisible {
   padding-right: 2.5em;
 }
@@ -63,7 +55,6 @@
   opacity: 0.5;
   transition: all 250ms;
 }
-
 #qr--popout > .qr--body {
   overflow-y: auto;
 }

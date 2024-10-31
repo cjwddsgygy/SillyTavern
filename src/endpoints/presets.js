@@ -1,17 +1,15 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
-import express from 'express';
-import sanitize from 'sanitize-filename';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
-
-import { getDefaultPresetFile, getDefaultPresets } from './content-manager.js';
-import { jsonParser } from '../express-common.js';
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const sanitize = require('sanitize-filename');
+const writeFileAtomicSync = require('write-file-atomic').sync;
+const { getDefaultPresetFile, getDefaultPresets } = require('./content-manager');
+const { jsonParser } = require('../express-common');
 
 /**
  * Gets the folder and extension for the preset settings based on the API source ID.
  * @param {string} apiId API source ID
- * @param {import('../users.js').UserDirectoryList} directories User directories
+ * @param {import('../users').UserDirectoryList} directories User directories
  * @returns {object} Object containing the folder and extension for the preset settings
  */
 function getPresetSettingsByAPI(apiId, directories) {
@@ -36,7 +34,7 @@ function getPresetSettingsByAPI(apiId, directories) {
     }
 }
 
-export const router = express.Router();
+const router = express.Router();
 
 router.post('/save', jsonParser, function (request, response) {
     const name = sanitize(request.body.name);
@@ -129,3 +127,5 @@ router.post('/delete-openai', jsonParser, function (request, response) {
 
     return response.send({ error: true });
 });
+
+module.exports = { router };

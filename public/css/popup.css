@@ -1,4 +1,3 @@
-@import url('/lib/dialog-polyfill.css');
 @import url('./popup-safari-fix.css');
 
 dialog {
@@ -43,7 +42,7 @@ dialog {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    width: min(100%, 100vw);
+    width: 100%;
     height: 100%;
     padding: 1px;
 }

@@ -2,7 +2,6 @@ import { substituteParams } from '../../script.js';
 import { delay, escapeRegex, uuidv4 } from '../utils.js';
 import { SlashCommand } from './SlashCommand.js';
 import { SlashCommandAbortController } from './SlashCommandAbortController.js';
-import { SlashCommandNamedArgument } from './SlashCommandArgument.js';
 import { SlashCommandBreak } from './SlashCommandBreak.js';
 import { SlashCommandBreakController } from './SlashCommandBreakController.js';
 import { SlashCommandBreakPoint } from './SlashCommandBreakPoint.js';
@@ -54,7 +53,7 @@ export class SlashCommandClosure {
      *
      * @param {string} text
      * @param {SlashCommandScope} scope
-     * @returns {string|SlashCommandClosure|(string|SlashCommandClosure)[]}
+     * @returns
      */
     substituteParams(text, scope = null) {
         let isList = false;
@@ -380,52 +379,6 @@ export class SlashCommandClosure {
      * @param {import('./SlashCommand.js').NamedArguments} args
      */
     async substituteNamedArguments(executor, args) {
-        /**
-         * Handles the assignment of named arguments, considering if they accept multiple values
-         * @param {string} name The name of the argument, as defined for the command execution
-         * @param {string|SlashCommandClosure|(string|SlashCommandClosure)[]} value The value to be assigned
-         */
-        const assign = (name, value) => {
-            // If an array is supposed to be assigned, assign it one by one
-            if (Array.isArray(value)) {
-                for (const val of value) {
-                    assign(name, val);
-                }
-                return;
-            }
-
-            const definition = executor.command.namedArgumentList.find(x => x.name == name);
-
-            // Prefer definition name if a valid named args defintion is found
-            name = definition?.name ?? name;
-
-            // Unescape named argument
-            if (value && typeof value == 'string') {
-                value = value
-                    .replace(/\\\{/g, '{')
-                    .replace(/\\\}/g, '}');
-            }
-
-            // If the named argument accepts multiple values, we have to make sure to build an array correctly
-            if (definition?.acceptsMultiple) {
-                if (args[name] !== undefined) {
-                    // If there already is something for that named arg, make the value is an array and add to it
-                    let currentValue = args[name];
-                    if (!Array.isArray(currentValue)) {
-                        currentValue = [currentValue];
-                    }
-                    currentValue.push(value);
-                    args[name] = currentValue;
-                } else {
-                    // If there is nothing in there, we create an array with that singular value
-                    args[name] = [value];
-                }
-            } else {
-                args[name] !== undefined && console.debug(`Named argument assigned multiple times: ${name}`);
-                args[name] = value;
-            }
-        };
-
         // substitute named arguments
         for (const arg of executor.namedArgumentList) {
             if (arg.value instanceof SlashCommandClosure) {
@@ -437,12 +390,19 @@ export class SlashCommandClosure {
                     closure.debugController = this.debugController;
                 }
                 if (closure.executeNow) {
-                    assign(arg.name, (await closure.execute())?.pipe);
+                    args[arg.name] = (await closure.execute())?.pipe;
                 } else {
-                    assign(arg.name, closure);
+                    args[arg.name] = closure;
                 }
             } else {
-                assign(arg.name, this.substituteParams(arg.value));
+                args[arg.name] = this.substituteParams(arg.value);
+            }
+            // unescape named argument
+            if (typeof args[arg.name] == 'string') {
+                args[arg.name] = args[arg.name]
+                    ?.replace(/\\\{/g, '{')
+                    ?.replace(/\\\}/g, '}')
+                ;
             }
         }
     }
@@ -464,7 +424,6 @@ export class SlashCommandClosure {
         } else {
             value = [];
             for (let i = 0; i < executor.unnamedArgumentList.length; i++) {
-                /** @type {string|SlashCommandClosure|(string|SlashCommandClosure)[]} */
                 let v = executor.unnamedArgumentList[i].value;
                 if (v instanceof SlashCommandClosure) {
                     /**@type {SlashCommandClosure}*/
@@ -508,14 +467,6 @@ export class SlashCommandClosure {
                 return v;
             });
         }
-
-        value ??= '';
-
-        // Make sure that if unnamed args are split, it should always return an array
-        if (executor.command.splitUnnamedArgument && !Array.isArray(value)) {
-            value = [value];
-        }
-
         return value;
     }
 

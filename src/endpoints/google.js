@@ -1,15 +1,12 @@
-import { Buffer } from 'node:buffer';
-import fetch from 'node-fetch';
-import express from 'express';
-import { speak, languages } from 'google-translate-api-x';
-
-import { readSecret, SECRET_KEYS } from './secrets.js';
-import { jsonParser } from '../express-common.js';
-import { GEMINI_SAFETY } from '../constants.js';
+const { readSecret, SECRET_KEYS } = require('./secrets');
+const fetch = require('node-fetch').default;
+const express = require('express');
+const { jsonParser } = require('../express-common');
+const { GEMINI_SAFETY } = require('../constants');
 
 const API_MAKERSUITE = 'https://generativelanguage.googleapis.com';
 
-export const router = express.Router();
+const router = express.Router();
 
 router.post('/caption-image', jsonParser, async (request, response) => {
     try {
@@ -42,6 +39,7 @@ router.post('/caption-image', jsonParser, async (request, response) => {
             headers: {
                 'Content-Type': 'application/json',
             },
+            timeout: 0,
         });
 
         if (!result.ok) {
@@ -50,7 +48,6 @@ router.post('/caption-image', jsonParser, async (request, response) => {
             return response.status(result.status).send({ error: true });
         }
 
-        /** @type {any} */
         const data = await result.json();
         console.log('Multimodal captioning response', data);
 
@@ -71,24 +68,4 @@ router.post('/caption-image', jsonParser, async (request, response) => {
     }
 });
 
-router.post('/list-voices', (_, response) => {
-    return response.json(languages);
-});
-
-router.post('/generate-voice', jsonParser, async (request, response) => {
-    try {
-        const text = request.body.text;
-        const voice = request.body.voice ?? 'en';
-
-        const result = await speak(text, { to: voice, forceBatch: false });
-        const buffer = Array.isArray(result)
-            ? Buffer.concat(result.map(x => new Uint8Array(Buffer.from(x.toString(), 'base64'))))
-            : Buffer.from(result.toString(), 'base64');
-
-        response.setHeader('Content-Type', 'audio/mpeg');
-        return response.send(buffer);
-    } catch (error) {
-        console.error('Google Translate TTS generation failed', error);
-        response.status(500).send('Internal server error');
-    }
-});
+module.exports = { router };

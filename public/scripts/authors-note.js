@@ -16,7 +16,6 @@ import { SlashCommandParser } from './slash-commands/SlashCommandParser.js';
 import { SlashCommand } from './slash-commands/SlashCommand.js';
 import { ARGUMENT_TYPE, SlashCommandArgument } from './slash-commands/SlashCommandArgument.js';
 export { MODULE_NAME as NOTE_MODULE_NAME };
-import { t } from './i18n.js';
 
 const MODULE_NAME = '2_floating_prompt'; // <= Deliberate, for sorting lower than memory
 
@@ -38,7 +37,7 @@ const chara_note_position = {
 
 function setNoteTextCommand(_, text) {
     $('#extension_floating_prompt').val(text).trigger('input');
-    toastr.success(t`Author's Note text updated`);
+    toastr.success('Author\'s Note text updated');
     return '';
 }
 
@@ -46,12 +45,12 @@ function setNoteDepthCommand(_, text) {
     const value = Number(text);
 
     if (Number.isNaN(value)) {
-        toastr.error(t`Not a valid number`);
+        toastr.error('Not a valid number');
         return;
     }
 
     $('#extension_floating_depth').val(Math.abs(value)).trigger('input');
-    toastr.success(t`Author's Note depth updated`);
+    toastr.success('Author\'s Note depth updated');
     return '';
 }
 
@@ -59,12 +58,12 @@ function setNoteIntervalCommand(_, text) {
     const value = Number(text);
 
     if (Number.isNaN(value)) {
-        toastr.error(t`Not a valid number`);
+        toastr.error('Not a valid number');
         return;
     }
 
     $('#extension_floating_interval').val(Math.abs(value)).trigger('input');
-    toastr.success(t`Author's Note frequency updated`);
+    toastr.success('Author\'s Note frequency updated');
     return '';
 }
 
@@ -77,12 +76,12 @@ function setNotePositionCommand(_, text) {
     const position = validPositions[text?.trim()];
 
     if (Number.isNaN(position)) {
-        toastr.error(t`Not a valid position`);
+        toastr.error('Not a valid position');
         return;
     }
 
     $(`input[name="extension_floating_position"][value="${position}"]`).prop('checked', true).trigger('input');
-    toastr.info(t`Author's Note position updated`);
+    toastr.info('Author\'s Note position updated');
     return '';
 }
 
@@ -207,7 +206,7 @@ function onExtensionFloatingCharaPromptInput() {
         extension_settings.note.chara.push(tempCharaNote);
     } else {
         console.log('Character author\'s note error: No avatar name key could be found.');
-        toastr.error(t`Something went wrong. Could not save character's author's note.`);
+        toastr.error('Something went wrong. Could not save character\'s author\'s note.');
 
         // Don't save settings if something went wrong
         return;
@@ -398,7 +397,7 @@ function onANMenuItemClick() {
         //because this listener takes priority
         $('#options').stop().fadeOut(animation_duration);
     } else {
-        toastr.warning(t`Select a character before trying to use Author's Note`, '', { timeOut: 2000 });
+        toastr.warning('Select a character before trying to use Author\'s Note', '', { timeOut: 2000 });
     }
 }
 

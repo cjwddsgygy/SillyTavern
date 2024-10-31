@@ -1,19 +1,18 @@
-import path from 'node:path';
-import { promises as fsPromises } from 'node:fs';
-import crypto from 'node:crypto';
-
-import storage from 'node-persist';
-import express from 'express';
-
-import { jsonParser } from '../express-common.js';
-import { getUserAvatar, toKey, getPasswordHash, getPasswordSalt, createBackupArchive, ensurePublicDirectoriesExist, toAvatarKey } from '../users.js';
-import { SETTINGS_FILE } from '../constants.js';
-import { checkForNewContent, CONTENT_TYPES } from './content-manager.js';
-import { color, Cache } from '../util.js';
+const path = require('path');
+const fsPromises = require('fs').promises;
+const storage = require('node-persist');
+const express = require('express');
+const crypto = require('crypto');
+const { jsonParser } = require('../express-common');
+const { getUserAvatar, toKey, getPasswordHash, getPasswordSalt, createBackupArchive, ensurePublicDirectoriesExist, toAvatarKey } = require('../users');
+const { SETTINGS_FILE } = require('../constants');
+const contentManager = require('./content-manager');
+const { color, Cache } = require('../util');
+const { checkForNewContent } = require('./content-manager');
 
 const RESET_CACHE = new Cache(5 * 60 * 1000);
 
-export const router = express.Router();
+const router = express.Router();
 
 router.post('/logout', async (request, response) => {
     try {
@@ -71,7 +70,7 @@ router.post('/change-avatar', jsonParser, async (request, response) => {
             return response.status(400).json({ error: 'Invalid data URL' });
         }
 
-        /** @type {import('../users.js').User} */
+        /** @type {import('../users').User} */
         const user = await storage.getItem(toKey(request.body.handle));
 
         if (!user) {
@@ -100,7 +99,7 @@ router.post('/change-password', jsonParser, async (request, response) => {
             return response.status(403).json({ error: 'Unauthorized' });
         }
 
-        /** @type {import('../users.js').User} */
+        /** @type {import('../users').User} */
         const user = await storage.getItem(toKey(request.body.handle));
 
         if (!user) {
@@ -167,7 +166,7 @@ router.post('/reset-settings', jsonParser, async (request, response) => {
 
         const pathToFile = path.join(request.user.directories.root, SETTINGS_FILE);
         await fsPromises.rm(pathToFile, { force: true });
-        await checkForNewContent([request.user.directories], [CONTENT_TYPES.SETTINGS]);
+        await contentManager.checkForNewContent([request.user.directories], [contentManager.CONTENT_TYPES.SETTINGS]);
 
         return response.sendStatus(204);
     } catch (error) {
@@ -188,7 +187,7 @@ router.post('/change-name', jsonParser, async (request, response) => {
             return response.status(403).json({ error: 'Unauthorized' });
         }
 
-        /** @type {import('../users.js').User} */
+        /** @type {import('../users').User} */
         const user = await storage.getItem(toKey(request.body.handle));
 
         if (!user) {
@@ -252,3 +251,7 @@ router.post('/reset-step2', jsonParser, async (request, response) => {
         return response.sendStatus(500);
     }
 });
+
+module.exports = {
+    router,
+};

@@ -1,17 +1,14 @@
-import fs from 'node:fs';
-import { Buffer } from 'node:buffer';
+const { readSecret, SECRET_KEYS } = require('./secrets');
+const fetch = require('node-fetch').default;
+const express = require('express');
+const FormData = require('form-data');
+const fs = require('fs');
+const { jsonParser, urlencodedParser } = require('../express-common');
+const { getConfigValue, mergeObjectWithYaml, excludeKeysByYaml, trimV1 } = require('../util');
+const { setAdditionalHeaders } = require('../additional-headers');
+const { OPENROUTER_HEADERS } = require('../constants');
 
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-import express from 'express';
-
-import { jsonParser, urlencodedParser } from '../express-common.js';
-import { getConfigValue, mergeObjectWithYaml, excludeKeysByYaml, trimV1 } from '../util.js';
-import { setAdditionalHeaders } from '../additional-headers.js';
-import { readSecret, SECRET_KEYS } from './secrets.js';
-import { OPENROUTER_HEADERS } from '../constants.js';
-
-export const router = express.Router();
+const router = express.Router();
 
 router.post('/caption-image', jsonParser, async (request, response) => {
     try {
@@ -56,10 +53,6 @@ router.post('/caption-image', jsonParser, async (request, response) => {
 
         if (request.body.api === 'mistral') {
             key = readSecret(request.user.directories, SECRET_KEYS.MISTRALAI);
-        }
-
-        if (request.body.api === 'groq') {
-            key = readSecret(request.user.directories, SECRET_KEYS.GROQ);
         }
 
         if (!key && !request.body.reverse_proxy && ['custom', 'ooba', 'koboldcpp', 'vllm'].includes(request.body.api) === false) {
@@ -118,10 +111,6 @@ router.post('/caption-image', jsonParser, async (request, response) => {
             apiUrl = 'https://api.01.ai/v1/chat/completions';
         }
 
-        if (request.body.api === 'groq') {
-            apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-        }
-
         if (request.body.api === 'mistral') {
             apiUrl = 'https://api.mistral.ai/v1/chat/completions';
         }
@@ -154,6 +143,7 @@ router.post('/caption-image', jsonParser, async (request, response) => {
                 ...headers,
             },
             body: JSON.stringify(body),
+            timeout: 0,
         });
 
         if (!result.ok) {
@@ -162,7 +152,6 @@ router.post('/caption-image', jsonParser, async (request, response) => {
             return response.status(500).send(text);
         }
 
-        /** @type {any} */
         const data = await result.json();
         console.log('Multimodal captioning response', data);
         const caption = data?.choices[0]?.message?.content;
@@ -284,6 +273,7 @@ router.post('/generate-image', jsonParser, async (request, response) => {
                 Authorization: `Bearer ${key}`,
             },
             body: JSON.stringify(request.body),
+            timeout: 0,
         });
 
         if (!result.ok) {
@@ -343,3 +333,5 @@ custom.post('/generate-voice', jsonParser, async (request, response) => {
 });
 
 router.use('/custom', custom);
+
+module.exports = { router };

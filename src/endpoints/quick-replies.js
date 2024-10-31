@@ -1,13 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const sanitize = require('sanitize-filename');
+const writeFileAtomicSync = require('write-file-atomic').sync;
 
-import express from 'express';
-import sanitize from 'sanitize-filename';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
+const { jsonParser } = require('../express-common');
 
-import { jsonParser } from '../express-common.js';
-
-export const router = express.Router();
+const router = express.Router();
 
 router.post('/save', jsonParser, (request, response) => {
     if (!request.body || !request.body.name) {
@@ -32,3 +31,5 @@ router.post('/delete', jsonParser, (request, response) => {
 
     return response.sendStatus(200);
 });
+
+module.exports = { router };

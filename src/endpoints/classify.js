@@ -1,11 +1,9 @@
-import express from 'express';
-
-import { getPipeline } from '../transformers.mjs';
-import { jsonParser } from '../express-common.js';
+const express = require('express');
+const { jsonParser } = require('../express-common');
 
 const TASK = 'text-classification';
 
-export const router = express.Router();
+const router = express.Router();
 
 /**
  * @type {Map<string, object>} Cache for classification results
@@ -14,7 +12,8 @@ const cacheObject = new Map();
 
 router.post('/labels', jsonParser, async (req, res) => {
     try {
-        const pipe = await getPipeline(TASK);
+        const module = await import('../transformers.mjs');
+        const pipe = await module.default.getPipeline(TASK);
         const result = Object.keys(pipe.model.config.label2id);
         return res.json({ labels: result });
     } catch (error) {
@@ -36,7 +35,8 @@ router.post('/', jsonParser, async (req, res) => {
             if (cacheObject.has(text)) {
                 return cacheObject.get(text);
             } else {
-                const pipe = await getPipeline(TASK);
+                const module = await import('../transformers.mjs');
+                const pipe = await module.default.getPipeline(TASK);
                 const result = await pipe(text, { topk: 5 });
                 result.sort((a, b) => b.score - a.score);
                 cacheObject.set(text, result);
@@ -54,3 +54,5 @@ router.post('/', jsonParser, async (req, res) => {
         return res.sendStatus(500);
     }
 });
+
+module.exports = { router };

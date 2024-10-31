@@ -848,14 +848,7 @@ async function logout() {
         headers: getRequestHeaders(),
     });
 
-    // On an explicit logout stop auto login
-    // to allow user to change username even
-    // when auto auth (such as authelia or basic)
-    // would be valid
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('noauto', 'true');
-
-    window.location.search = urlParams.toString();
+    window.location.reload();
 }
 
 /**

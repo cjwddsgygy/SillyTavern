@@ -180,13 +180,7 @@ function displayError(message) {
  * Preserves the query string.
  */
 function redirectToHome() {
-    // After a login theres no need to preserve the
-    // noauto (if present)
-    const urlParams = new URLSearchParams(window.location.search);
-
-    urlParams.delete('noauto');
-
-    window.location.href = '/' + urlParams.toString();
+    window.location.href = '/' + window.location.search;
 }
 
 /**

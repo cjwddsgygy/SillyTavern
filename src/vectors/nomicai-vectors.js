@@ -1,5 +1,5 @@
-import fetch from 'node-fetch';
-import { SECRET_KEYS, readSecret } from '../endpoints/secrets.js';
+const fetch = require('node-fetch').default;
+const { SECRET_KEYS, readSecret } = require('../endpoints/secrets');
 
 const SOURCES = {
     'nomicai': {
@@ -13,10 +13,10 @@ const SOURCES = {
  * Gets the vector for the given text batch from an OpenAI compatible endpoint.
  * @param {string[]} texts - The array of texts to get the vector for
  * @param {string} source - The source of the vector
- * @param {import('../users.js').UserDirectoryList} directories - The directories object for the user
+ * @param {import('../users').UserDirectoryList} directories - The directories object for the user
  * @returns {Promise<number[][]>} - The array of vectors for the texts
  */
-export async function getNomicAIBatchVector(texts, source, directories) {
+async function getNomicAIBatchVector(texts, source, directories) {
     const config = SOURCES[source];
 
     if (!config) {
@@ -51,7 +51,6 @@ export async function getNomicAIBatchVector(texts, source, directories) {
         throw new Error('API request failed');
     }
 
-    /** @type {any} */
     const data = await response.json();
     if (!Array.isArray(data?.embeddings)) {
         console.log('API response was not an array');
@@ -65,10 +64,15 @@ export async function getNomicAIBatchVector(texts, source, directories) {
  * Gets the vector for the given text from an OpenAI compatible endpoint.
  * @param {string} text - The text to get the vector for
  * @param {string} source - The source of the vector
- * @param {import('../users.js').UserDirectoryList} directories - The directories object for the user
+ * @param {import('../users').UserDirectoryList} directories - The directories object for the user
  * @returns {Promise<number[]>} - The vector for the text
  */
-export async function getNomicAIVector(text, source, directories) {
+async function getNomicAIVector(text, source, directories) {
     const vectors = await getNomicAIBatchVector([text], source, directories);
     return vectors[0];
 }
+
+module.exports = {
+    getNomicAIVector,
+    getNomicAIBatchVector,
+};

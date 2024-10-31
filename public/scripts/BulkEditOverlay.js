@@ -7,6 +7,7 @@ import {
     event_types,
     eventSource,
     getCharacters,
+    getPastCharacterChats,
     getRequestHeaders,
     buildAvatarList,
     characterToEntity,

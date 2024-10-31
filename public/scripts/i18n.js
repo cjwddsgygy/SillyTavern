@@ -9,8 +9,6 @@ var langs;
 // eslint-disable-next-line prefer-const
 var localeData;
 
-export const getCurrentLocale = () => localeFile;
-
 /**
  * An observer that will check if any new i18n elements are added to the document
  * @type {MutationObserver}

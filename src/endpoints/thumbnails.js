@@ -1,16 +1,14 @@
-import fs from 'node:fs';
-import { promises as fsPromises } from 'node:fs';
-import path from 'node:path';
-
-import mime from 'mime-types';
-import express from 'express';
-import sanitize from 'sanitize-filename';
-import jimp from 'jimp';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
-
-import { getAllUserHandles, getUserDirectories } from '../users.js';
-import { getConfigValue } from '../util.js';
-import { jsonParser } from '../express-common.js';
+const fs = require('fs');
+const fsPromises = require('fs').promises;
+const path = require('path');
+const mime = require('mime-types');
+const express = require('express');
+const sanitize = require('sanitize-filename');
+const jimp = require('jimp');
+const writeFileAtomicSync = require('write-file-atomic').sync;
+const { getAllUserHandles, getUserDirectories } = require('../users');
+const { getConfigValue } = require('../util');
+const { jsonParser } = require('../express-common');
 
 const thumbnailsDisabled = getConfigValue('disableThumbnails', false);
 const quality = getConfigValue('thumbnailsQuality', 95);
@@ -18,7 +16,7 @@ const pngFormat = getConfigValue('avatarThumbnailsPng', false);
 
 /**
  * Gets a path to thumbnail folder based on the type.
- * @param {import('../users.js').UserDirectoryList} directories User directories
+ * @param {import('../users').UserDirectoryList} directories User directories
  * @param {'bg' | 'avatar'} type Thumbnail type
  * @returns {string} Path to the thumbnails folder
  */
@@ -39,7 +37,7 @@ function getThumbnailFolder(directories, type) {
 
 /**
  * Gets a path to the original images folder based on the type.
- * @param {import('../users.js').UserDirectoryList} directories User directories
+ * @param {import('../users').UserDirectoryList} directories User directories
  * @param {'bg' | 'avatar'} type Thumbnail type
  * @returns {string} Path to the original images folder
  */
@@ -60,11 +58,11 @@ function getOriginalFolder(directories, type) {
 
 /**
  * Removes the generated thumbnail from the disk.
- * @param {import('../users.js').UserDirectoryList} directories User directories
+ * @param {import('../users').UserDirectoryList} directories User directories
  * @param {'bg' | 'avatar'} type Type of the thumbnail
  * @param {string} file Name of the file
  */
-export function invalidateThumbnail(directories, type, file) {
+function invalidateThumbnail(directories, type, file) {
     const folder = getThumbnailFolder(directories, type);
     if (folder === undefined) throw new Error('Invalid thumbnail type');
 
@@ -77,7 +75,7 @@ export function invalidateThumbnail(directories, type, file) {
 
 /**
  * Generates a thumbnail for the given file.
- * @param {import('../users.js').UserDirectoryList} directories User directories
+ * @param {import('../users').UserDirectoryList} directories User directories
  * @param {'bg' | 'avatar'} type Type of the thumbnail
  * @param {string} file Name of the file
  * @returns
@@ -143,7 +141,7 @@ async function generateThumbnail(directories, type, file) {
  * Ensures that the thumbnail cache for backgrounds is valid.
  * @returns {Promise<void>} Promise that resolves when the cache is validated
  */
-export async function ensureThumbnailCache() {
+async function ensureThumbnailCache() {
     const userHandles = await getAllUserHandles();
     for (const handle of userHandles) {
         const directories = getUserDirectories(handle);
@@ -168,7 +166,7 @@ export async function ensureThumbnailCache() {
     }
 }
 
-export const router = express.Router();
+const router = express.Router();
 
 // Important: This route must be mounted as '/thumbnail'. It is used in the client code and saved to chat files.
 router.get('/', jsonParser, async function (request, response) {
@@ -229,3 +227,9 @@ router.get('/', jsonParser, async function (request, response) {
         return response.sendStatus(500);
     }
 });
+
+module.exports = {
+    invalidateThumbnail,
+    ensureThumbnailCache,
+    router,
+};

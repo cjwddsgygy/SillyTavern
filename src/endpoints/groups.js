@@ -1,14 +1,13 @@
-import fs from 'node:fs';
-import path from 'node:path';
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const sanitize = require('sanitize-filename');
+const writeFileAtomicSync = require('write-file-atomic').sync;
 
-import express from 'express';
-import sanitize from 'sanitize-filename';
-import { sync as writeFileAtomicSync } from 'write-file-atomic';
+const { jsonParser } = require('../express-common');
+const { humanizedISO8601DateTime } = require('../util');
 
-import { jsonParser } from '../express-common.js';
-import { humanizedISO8601DateTime } from '../util.js';
-
-export const router = express.Router();
+const router = express.Router();
 
 router.post('/all', jsonParser, (request, response) => {
     const groups = [];
@@ -132,3 +131,5 @@ router.post('/delete', jsonParser, async (request, response) => {
 
     return response.send({ ok: true });
 });
+
+module.exports = { router };

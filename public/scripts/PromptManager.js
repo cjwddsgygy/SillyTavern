@@ -8,7 +8,6 @@ import { debounce, waitUntilCondition, escapeHtml } from './utils.js';
 import { debounce_timeout } from './constants.js';
 import { renderTemplateAsync } from './templates.js';
 import { Popup } from './popup.js';
-import { t } from './i18n.js';
 
 function debouncePromise(func, delay) {
     let timeoutId;
@@ -315,7 +314,7 @@ class PromptManager {
      */
     init(moduleConfiguration, serviceSettings) {
         this.configuration = Object.assign(this.configuration, moduleConfiguration);
-        this.tokenHandler = this.tokenHandler || new TokenHandler(() => { throw new Error('Token handler not set'); });
+        this.tokenHandler = this.tokenHandler || new TokenHandler();
         this.serviceSettings = serviceSettings;
         this.containerElement = document.getElementById(this.configuration.containerIdentifier);
 
@@ -456,7 +455,7 @@ class PromptManager {
 
         // Delete selected prompt from list form and close edit form
         this.handleDeletePrompt = async (event) => {
-            Popup.show.confirm(t`Are you sure you want to delete this prompt?`, null).then((userChoice) => {
+            Popup.show.confirm('Are you sure you want to delete this prompt?', null).then((userChoice) => {
                 if (!userChoice) return;
                 const promptID = document.getElementById(this.configuration.prefix + 'prompt_manager_footer_append_prompt').value;
                 const prompt = this.getPromptById(promptID);
@@ -532,7 +531,7 @@ class PromptManager {
 
         // Import prompts for the selected character
         this.handleImport = () => {
-            Popup.show.confirm(t`Existing prompts with the same ID will be overridden. Do you want to proceed?`, null)
+            Popup.show.confirm('Existing prompts with the same ID will be overridden. Do you want to proceed?', null)
                 .then(userChoice => {
                     if (!userChoice) return;
 
@@ -553,7 +552,7 @@ class PromptManager {
                                 const data = JSON.parse(fileContent);
                                 this.import(data);
                             } catch (err) {
-                                toastr.error(t`An error occurred while importing prompts. More info available in console.`);
+                                toastr.error('An error occurred while importing prompts. More info available in console.');
                                 console.log('An error occurred while importing prompts');
                                 console.log(err.toString());
                             }
@@ -568,7 +567,7 @@ class PromptManager {
 
         // Restore default state of a characters prompt order
         this.handleCharacterReset = () => {
-            Popup.show.confirm(t`This will reset the prompt order for this character. You will not lose any prompts.`, null)
+            Popup.show.confirm('This will reset the prompt order for this character. You will not lose any prompts.', null)
                 .then(userChoice => {
                     if (!userChoice) return;
 
@@ -1650,7 +1649,7 @@ class PromptManager {
         };
 
         if (false === this.validateObject(controlObj, importData)) {
-            toastr.warning(t`Could not import prompts. Export failed validation.`);
+            toastr.warning('Could not import prompts. Export failed validation.');
             return;
         }
 
@@ -1673,7 +1672,7 @@ class PromptManager {
             throw new Error('Prompt order strategy not supported.');
         }
 
-        toastr.success(t`Prompt import complete.`);
+        toastr.success('Prompt import complete.');
         this.saveServiceSettings().then(() => this.render());
     }
 
